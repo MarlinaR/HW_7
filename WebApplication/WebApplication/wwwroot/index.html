@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Список книг</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+<h2>Список Книг</h2>
+<form name="bookForm">
+    <input type="hidden" name="id" value="0" />
+    <div class="form-group col-md-5">
+        <label for="name">Название:</label>
+        <input class="form-control" name="name" />
+    </div>
+    <div class="form-group col-md-5">
+        <label for="material">Жанр:</label>
+        <input class="form-control" name="material" />
+    </div>
+    <div class="form-group col-md-5">
+        <label for="price">Цена:</label>
+        <input class="form-control" name="price" type="number" />
+    </div>
+    <div class="panel-body">
+        <button type="submit" id="submit" class="btn btn-primary">Сохранить</button>
+        <a id="reset" class="btn btn-primary">Сбросить</a>
+    </div>
+</form>
+<table class="table table-condensed table-striped col-md-6">
+    <thead><tr><th>Название</th><th>Жанр</th><th>Цена</th></tr></thead>
+    <tbody>
+    </tbody>
+</table>
+<script>
+    // Получение всех игрушек
+    async function GetBooks() {
+        // отправляет запрос и получаем ответ
+        const response = await fetch("/api/books", {
+            method: "GET",
+            headers: { "Accept": "application/json" }
+        });
+        // если запрос прошел нормально
+        if (response.ok === true) {
+            // получаем данные
+            const books = await response.json();
+            let rows = document.querySelector("tbody");
+            books.forEach(book => {
+                // добавляем полученные элементы в таблицу
+                rows.append(row(book));
+            });
+        }
+    }
+    // Получение одной игрушки
+    async function GetBook(id) {
+        const response = await fetch("/api/books/" + id, {
+            method: "GET",
+            headers: { "Accept": "application/json" }
+        });
+        if (response.ok === true) {
+            const book = await response.json();
+            const form = document.forms["bookForm"];
+            form.elements["id"].value = book.id;
+            form.elements["name"].value = book.name;
+            form.elements["material"].value = book.material;
+            form.elements["price"].value = book.price;
+        }
+    }
+    // Добавление игрушки
+    async function CreateBook(bookName, bookMaterial, bookPrice) {
+
+        const response = await fetch("api/books", {
+            method: "POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: bookName,
+                material: bookMaterial,
+                price: parseInt(bookPrice, 10)
+            })
+        });
+        if (response.ok === true) {
+            const book = await response.json();
+            reset();
+            document.querySelector("tbody").append(row(book));
+        }
+    }
+    // Изменение игрушки
+    async function EditBook(bookId, bookName, bookMaterial, bookPrice) {
+        const response = await fetch("api/books", {
+            method: "PUT",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+                id: parseInt(bookId, 10),
+                name: bookName,
+                material: bookMaterial,
+                price: parseInt(bookPrice, 10)
+            })
+        });
+        if (response.ok === true) {
+            const book = await response.json();
+            reset();
+            document.querySelector("tr[data-rowid='" + book.id + "']").replaceWith(row(book));
+        }
+    }
+    // Удаление игрушки
+    async function DeleteBook(id) {
+        const response = await fetch("/api/books/" + id, {
+            method: "DELETE",
+            headers: { "Accept": "application/json" }
+        });
+        if (response.ok === true) {
+            const book = await response.json();
+            document.querySelector("tr[data-rowid='" + book.id + "']").remove();
+        }
+    }
+
+    // сброс формы
+    function reset() {
+        const form = document.forms["bookForm"];
+        form.reset();
+        form.elements["id"].value = 0;
+    }
+    // создание строки для таблицы
+    function row(book) {
+
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-rowid", book.id);
+        
+        const nameTd = document.createElement("td");
+        nameTd.append(book.name);
+        tr.append(nameTd);
+
+        const materialTd = document.createElement("td");
+        materialTd.append(book.material);
+        tr.append(materialTd);
+        
+        const priceTd = document.createElement("td");
+        priceTd.append(book.price);
+        tr.append(priceTd);
+
+        const linksTd = document.createElement("td");
+
+        const editLink = document.createElement("a");
+        editLink.setAttribute("data-id", book.id);
+        editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+        editLink.append("Изменить");
+        editLink.addEventListener("click", e => {
+            e.preventDefault();
+            GetBook(book.id);
+        });
+        linksTd.append(editLink);
+
+        const removeLink = document.createElement("a");
+        removeLink.setAttribute("data-id", book.id);
+        removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+        removeLink.append("Удалить");
+        removeLink.addEventListener("click", e => {
+
+            e.preventDefault();
+            DeleteBook(book.id);
+        });
+
+        linksTd.append(removeLink);
+        tr.appendChild(linksTd);
+
+        return tr;
+    }
+    // сброс значений формы
+    document.getElementById("reset").click(function (e) {
+        e.preventDefault();
+        reset();
+    })
+
+    // отправка формы
+    document.forms["bookForm"].addEventListener("submit", e => {
+        e.preventDefault();
+        const form = document.forms["bookForm"];
+        const id = form.elements["id"].value;
+        const name = form.elements["name"].value;
+        const material = form.elements["material"].value;
+        const price = form.elements["price"].value;
+        if (id == 0)
+            CreateBook(name, material, price);
+        else
+            EditBook(id, name, material, price);
+    });
+
+    // загрузка игрушек
+    GetBooks();
+
+</script>
+</body>
+</html>
