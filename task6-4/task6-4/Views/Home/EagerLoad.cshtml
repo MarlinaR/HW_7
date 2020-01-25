@@ -1,0 +1,12 @@
+﻿@model IEnumerable<task6_4.Book>
+@{
+    ViewBag.Title = "Жадная загрузка дисков";
+}
+
+<table class="table">
+    <tr><td>Книга</td><td>Автор</td><td>Страна</td></tr>
+    @foreach (var item in Model)
+    {
+        <tr><td>@item.Name</td><td>@item.Author.Name</td><td>@item.Author.Country</td></tr>
+    }
+</table>
